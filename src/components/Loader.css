@@ -1,0 +1,22 @@
+.loader-container {    
+    display: flex;    
+    justify-content: center;
+    align-items: center;    
+    height: 100vh; /* Full viewport height */    
+    width: 100vw; /* Full viewport width */    
+    position: fixed;    
+    top: 0;    
+    left: 0;    
+    background-color: rgba(255, 255, 255, 0.8); /* Optional background */    
+    z-index: 9999; /* Ensure it appears on top */
+}
+.svgbox {    
+    --blue: rgb(148, 66, 63);    
+    stroke: var(--blue);    
+    stroke-width: 5;    
+    fill: none;    
+    stroke-dasharray: 50, 14;    
+    stroke-dashoffset: 192;    
+    animation: dash_682 1.4s linear infinite;
+}
+@keyframes dash_682 { 72.5% {opacity: 1;} to {stroke-dashoffset: 1;}}
