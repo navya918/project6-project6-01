@@ -1,308 +1,148 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Row, Col, Form, Card, Container } from 'react-bootstrap';
-import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import TimesheetSubmission from './TimesheetSubmission';
+import React, { useState, useEffect } from "react";
+import { Button, Row, Col, Form, Card, Container } from "react-bootstrap";
+import { useNavigate, useLocation } from "react-router-dom";
 
-export default function TimesheetManagement({ setSubmissions }) {
+const FormField = ({ label, name, value, onChange, type = "text", required = false, options = [] }) => (
+  <Col md={6}>
+    <Form.Group controlId={`form${name}`}>
+      <Form.Label>
+        {label}
+        {required && <span className="text-red-500">*</span>}
+      </Form.Label>
+      {type === "select" ? (
+        <Form.Control as="select" name={name} value={value} onChange={onChange}>
+          <option value="" style={{ color: "grey" }}>
+            Select {label.toLowerCase()}
+          </option>
+          {options.map((opt, index) => (
+            <option key={index} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Form.Control>
+      ) : (
+        <Form.Control
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+        />
+      )}
+    </Form.Group>
+  </Col>
+);
+
+const TimesheetManagement = ({ setSubmissions }) => {
   const [formData, setFormData] = useState({
-    startDate: '',
-    endDate: '',
-    numberOfHours: '',
-    extraHours: '',
-    clientName: '',
-    projectName: '',
-    taskType: '',
-    workLocation: '',
-    reportingManager: '',
-    onCallSupport: '',
-    taskDescription: ''
+    employeeId: "MTL1021",managerId: "MTL1001",employeeName: "Anitha", startDate: "", endDate: "", numberOfHours: "", extraHours: "",
+    clientName: "", projectName: "", taskType: "", workLocation: "",
+    reportingManager: "", onCallSupport: "", taskDescription: ""
   });
-  const [submissionData, setSubmissionData] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
   const [errors, setErrors] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (location.state) {
-      if (location.state.submission) {
-        setFormData(location.state.submission);
-        setIsEditing(true);
-      } else if (location.state.formData) {
-        setFormData(location.state.formData);
-      }
+    if (location.state?.submission) {
+      setFormData(location.state.submission);
+      setIsEditing(true);
+    } else if (location.state?.formData) {
+      setFormData(location.state.formData);
     }
   }, [location.state]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value
-    }));
-    setErrors(null); // Clear errors when the employee updates input
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setErrors(null); // Clear errors when input is updated
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
+    // List of required fields
     const requiredFields = [
-      'startDate', 'endDate', 'clientName',
-      'projectName', 'taskType', 'workLocation',
-      'reportingManager', 'onCallSupport'
+      "startDate", "endDate", "clientName", "projectName", 
+      "taskType", "workLocation", "reportingManager", "onCallSupport"
     ];
 
-    // Check if all required fields are non-empty
-    const isValid = requiredFields.every(field => {
-      const value = String(formData[field]); // Ensure value is treated as a string
-      return value.trim() !== ''; // Check if the trimmed string is not empty
-    });
-
-    // Check numeric fields for validity
-    const numberFields = ['numberOfHours'];
-    const areNumbersValid = numberFields.every(field => {
-      const value = formData[field];
-      return (value !== '' && !isNaN(value) && value >= 0);
-    });
-
-    // Check date validity
-    const isDateValid = new Date(formData.startDate) <= new Date(formData.endDate);
-
-    // Display error if any validation fails
-    if (!isValid || !areNumbersValid || !isDateValid) {
-      let errorMessage = 'Please fill all required fields correctly.';
-      if (!isDateValid) {
-        errorMessage += ' Ensure that the start date is before the end date.';
+    // Validation to check if all required fields are filled correctly
+    const isValid = requiredFields.every((field) => {
+      const fieldValue = formData[field];
+      if (field === "numberOfHours" || field === "extraHours") {
+        // For numeric fields, check if they are valid numbers
+        return !isNaN(fieldValue) && fieldValue !== "";
       }
-      setErrors(errorMessage);
+      // For string fields, use trim to ensure there is no empty or whitespace only value
+      return typeof fieldValue === 'string' ? fieldValue.trim() !== "" : fieldValue != null;
+    });
+
+    // Additional validation to check if the start date is before or equal to the end date
+    if (!isValid || new Date(formData.startDate) > new Date(formData.endDate)) {
+      setErrors("Please fill all required fields correctly.");
       return;
     }
 
     setLoading(true);
-    try {
-      const response = await axios.post('http://localhost:8080/api/timesheets', {
-        ...formData,
-        employeeId: "MTL1015",
-        managerId: "MTL1001",
-        employeeName: "Anitha",
-        SubmissionDate: new Date().toISOString()
-      });
-      navigate('/timesheet-submission', { state: { submissionData: response.data, formData } });
-    } catch (error) {
-      console.error("Error submitting timesheet:", error);
-      setErrors('A timesheet for the selected dates has already been submitted. Please check and try again.');
-    } finally {
-      setLoading(false);
-    }
+
+    // Navigate to TimesheetSubmission.jsx without submitting to database yet
+    navigate("/timesheet-submission", { state: { formData } });
   };
 
-  // If submissionData exists, render TimesheetSubmission
-  if (submissionData) {
-    return (
-      <TimesheetSubmission
-        submissionData={submissionData}
-        handleBack={() => setSubmissionData(null)}
-        setSubmissions={setSubmissions}
-      />
-    );
-  }
+  // Options for dropdowns
+  const taskTypes = ["development", "design", "testing", "documentation", "research", "administration", "training", "support", "consulting", "maintenance", "meeting", "other"];
+  const workLocations = ["office", "home", "client", "co-working Space", "field", "hybrid", "on-Site", "temporary Location", "mobile"];
+  const onCallOptions = [{ value: "true", label: "Yes" }, { value: "false", label: "No" }];
 
   return (
     <Container>
       <Card className="m-4 font-serif">
         <Card.Header>
-          <Card.Title className="text-lg font-semibold">{isEditing ? 'Edit Timesheet' : 'Submit Timesheet'}</Card.Title>
+          <Card.Title className="text-lg font-semibold">{isEditing ? "Edit Timesheet" : "Submit Timesheet"}</Card.Title>
         </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>
             <Row className="mb-3">
-            <Col md={6}>
-            <Form.Group controlId="formStartDate">
-           <Form.Label>Start Date<span className="text-red-500">*</span></Form.Label>
-             <div className="relative">
-               <input
-                type="date"
-                name="startDate"
-                value={formData.startDate || ''}
-                onChange={handleChange}
-                placeholder='dd/mm/yy'
-                className="block w-full p-2 border rounded  focus:outline-none focus:ring focus:ring-blue-500"  style={{ color: formData.startDate === "" ? 'grey' : 'black' }}
-               />
-             </div>
-            </Form.Group>
-            </Col>
-            <Col md={6}>
-            <Form.Group controlId="formEndDate">
-            <Form.Label>End Date<span className="text-red-500">*</span></Form.Label>
-              <div className="relative">
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate || ''}
-                  onChange={handleChange}
-                  className="block w-full p-2 border rounded focus:outline-none focus:ring focus:ring-blue-500" style={{ color: formData.endDate === "" ? 'grey' : 'black' }} />
-              </div>
-                </Form.Group>
-              </Col>
+              <FormField label="Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" required />
+              <FormField label="End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" required />
             </Row>
             <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group controlId="formHours">
-                  <Form.Label>Number of Hours<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="numberOfHours"
-                    min="0"
-                    step="0.5"
-                    value={formData.numberOfHours}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="formExtraHours">
-                  <Form.Label>Extra Hours</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="extraHours"
-                    min="0"
-                    step="0.5"
-                    value={formData.extraHours}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
+              <FormField label="Number of Hours" name="numberOfHours" value={formData.numberOfHours} onChange={handleChange} type="number" required />
+              <FormField label="Extra Hours" name="extraHours" value={formData.extraHours} onChange={handleChange} type="number" />
             </Row>
             <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group controlId="formClient">
-                  <Form.Label>Client Name<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="clientName"
-                    value={formData.clientName}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="formProject">
-                  <Form.Label>Project Name<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="projectName"
-                    value={formData.projectName}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
+              <FormField label="Client Name" name="clientName" value={formData.clientName} onChange={handleChange} required />
+              <FormField label="Project Name" name="projectName" value={formData.projectName} onChange={handleChange} required />
             </Row>
             <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group controlId="formTaskType">
-                  <Form.Label>Task Type<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    as="select"
-                    name="taskType"
-                    value={formData.taskType}
-                    onChange={handleChange}
-                    style={{ color: formData.taskType === "" ? 'grey' : 'black' }} // Set color based on value
-                  >
-                    <option value="" style={{ color: 'grey' }}>Select task type</option>
-                    <option value="development">Development</option>
-                    <option value="design">Design</option>
-                    <option value="testing">Testing</option>
-                    <option value="documentation">Documentation</option>
-                    <option value="research">Research</option>
-                    <option value="administration">Administration</option>
-                    <option value="training">Training</option>
-                    <option value="support">Support</option>
-                    <option value="consulting">Consulting</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="other">Other</option>
-                  </Form.Control>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="formLocation">
-                  <Form.Label>Work Location<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    as="select"
-                    name="workLocation"
-                    value={formData.workLocation}
-                    onChange={handleChange}
-                    style={{ color: formData.taskType === "" ? 'grey' : 'black' }}
-                  >
-                    <option value="" style={{ color: 'grey' }}>Select work location</option>
-                    <option value="office">Office</option>
-                    <option value="home">Home</option>
-                    <option value="client">Client Site</option>
-                    <option value="co-working Space">Co-working Space</option>
-                    <option value="field">Field</option>
-                    <option value="hybrid">Hybrid</option>
-                    <option value="on-Site">On-Site</option>
-                    <option value="temporary Location">Temporary Location</option>
-                    <option value="mobile">Mobile</option>
-                  </Form.Control>
-                </Form.Group>
-              </Col>
+              <FormField label="Task Type" name="taskType" value={formData.taskType} onChange={handleChange} type="select" options={taskTypes.map(type => ({ value: type, label: type.charAt(0).toUpperCase() + type.slice(1) }))} required />
+              <FormField label="Work Location" name="workLocation" value={formData.workLocation} onChange={handleChange} type="select" options={workLocations.map(location => ({ value: location, label: location.charAt(0).toUpperCase() + location.slice(1) }))} required />
             </Row>
             <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group controlId="formManager">
-                  <Form.Label>Reporting Manager<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="reportingManager"
-                    value={formData.reportingManager}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="formOnCallSupport">
-                  <Form.Label>On-Call Support<span style={{ color: 'red' }}>*</span></Form.Label>
-                  <Form.Control
-                    as="select"
-                    name="onCallSupport"
-                    value={formData.onCallSupport}
-                    onChange={handleChange}
-                    style={{ color: formData.taskType === "" ? 'grey' : 'black' }}
-                  >
-                    <option value="" style={{ color: 'grey' }}>Select on-call status</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </Form.Control>
-                </Form.Group>
-              </Col>
+              <FormField label="Reporting Manager" name="reportingManager" value={formData.reportingManager} onChange={handleChange} required />
+              <FormField label="On-Call Support" name="onCallSupport" value={formData.onCallSupport} onChange={handleChange} type="select" options={onCallOptions} required />
             </Row>
             <Row className="mb-3">
               <Col md={12}>
                 <Form.Group controlId="formDescription">
                   <Form.Label>Task Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    name="taskDescription"
-                    value={formData.taskDescription}
-                    onChange={handleChange}
-                  />
+                  <Form.Control as="textarea" name="taskDescription" value={formData.taskDescription} onChange={handleChange} />
                 </Form.Group>
               </Col>
             </Row>
             {errors && <div className="text-red-500 mb-3">{errors}</div>}
-            <Button
-              disabled={loading}
-              type="submit"
-              variant={isEditing ? "warning" : "primary"}
-            >
-              {isEditing ? 'Update Timesheet' : 'Submit Timesheet'}
+            <Button disabled={loading} type="submit" variant={isEditing ? "warning" : "primary"}>
+              {isEditing ? "Update Timesheet" : "Submit Timesheet"}
             </Button>
           </Form>
         </Card.Body>
       </Card>
     </Container>
   );
-}
+};
+
+export default TimesheetManagement;
