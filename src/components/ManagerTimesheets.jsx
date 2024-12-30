@@ -23,7 +23,7 @@ const ManagerTimesheets = () => {
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:8080/api/timesheets/list/manager/${managerId}`);
+        const { data } = await axios.get(`https://backend-01-a0frapgndphphvhb.canadacentral-01.azurewebsites.net/api/timesheets/list/manager/${managerId}`);
         setSubmissions(data);
         setFilteredSubmissions(data.reverse());
         setCounts({
@@ -60,7 +60,7 @@ const ManagerTimesheets = () => {
     setLoading(true);
     try {
       await axios.put(
-        `http://localhost:8080/api/timesheets/Approve/${id}/status/APPROVED`
+        `https://backend-01-a0frapgndphphvhb.canadacentral-01.azurewebsites.net/api/timesheets/Approve/${id}/status/APPROVED`
       );
       fetchUpdatedSubmissions();
     } catch (error) {
@@ -74,7 +74,7 @@ const ManagerTimesheets = () => {
     setLoading(true);
     try {
       await axios.put(
-        `http://localhost:8080/api/timesheets/reject/${currentId}/status/REJECTED/comments/${comments}`
+        `https://backend-01-a0frapgndphphvhb.canadacentral-01.azurewebsites.net/api/timesheets/reject/${currentId}/status/REJECTED/comments/${comments}`
       );
       fetchUpdatedSubmissions();
       handleClose();
@@ -86,7 +86,7 @@ const ManagerTimesheets = () => {
   };
 
   const fetchUpdatedSubmissions = async () => {
-    const { data } = await axios.get(`http://localhost:8080/api/timesheets/list/manager/${managerId}`);
+    const { data } = await axios.get(`https://backend-01-a0frapgndphphvhb.canadacentral-01.azurewebsites.net/api/timesheets/list/manager/${managerId}`);
     setSubmissions(data);
     setFilteredSubmissions(data);
   };
